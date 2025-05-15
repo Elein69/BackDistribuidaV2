@@ -14,86 +14,113 @@ import java.util.List;
 
 public class SimpleServer {
 
-    // Configuración de la base de datos
-    private static final String DB_URL = "jdbc:mysql://18.217.100.110:3306/agenda";
-    private static final String DB_USER = "adminMysql";
-    private static final String DB_PASSWORD = "12345"; 
+    // Configuración desde variables de entorno
+    private static final String DB_URL = System.getenv("DB_URL");
+    private static final String DB_USER = System.getenv("DB_USER");
+    private static final String DB_PASSWORD = System.getenv("DB_PASSWORD");
+    private static final String FRONTEND_URL = System.getenv("FRONTEND_URL");
+    private static final String PORT = System.getenv("PORT");
 
     public static void main(String[] args) throws Exception {
-        // Crear servidor en el puerto 8080
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        // Configuración del puerto (Railway lo provee)
+        int serverPort = PORT != null ? Integer.parseInt(PORT) : 8080;
+        
+        HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
+        Class.forName("com.mysql.cj.jdbc.Driver");
 
-        // Ruta GET /contactos
+        // Endpoint GET /contactos
         server.createContext("/contactos", new HttpHandler() {
             @Override
             public void handle(HttpExchange exchange) throws IOException {
+                handleCorsPreflight(exchange);
+                
                 if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    List<String> contactos = getContactosDesdeDB();
-                    String response = String.join(",", contactos);
-                    exchange.sendResponseHeaders(200, response.getBytes().length);
-                    OutputStream os = exchange.getResponseBody();
-                    os.write(response.getBytes());
-                    os.close();
+                    try {
+                        List<String> contactos = getContactosDesdeDB();
+                        String response = String.join(",", contactos);
+                        sendResponse(exchange, 200, response);
+                    } catch (SQLException e) {
+                        sendResponse(exchange, 500, "Error al obtener contactos");
+                    }
                 } else {
-                    exchange.sendResponseHeaders(405, -1);
+                    sendResponse(exchange, 405, "Método no permitido");
                 }
             }
         });
 
-        // Ruta POST /addContacto
+        // Endpoint POST /addContacto
         server.createContext("/addContacto", new HttpHandler() {
             @Override
             public void handle(HttpExchange exchange) throws IOException {
+                handleCorsPreflight(exchange);
+                
                 if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    InputStream is = exchange.getRequestBody();
-                    String nuevoContacto = new String(is.readAllBytes()).trim();
-                    boolean agregado = agregarContactoDB(nuevoContacto);
-                    String response = agregado ? "Contacto agregado con éxito" : "Error al agregar contacto";
-                    exchange.sendResponseHeaders(agregado ? 200 : 500, response.getBytes().length);
-                    OutputStream os = exchange.getResponseBody();
-                    os.write(response.getBytes());
-                    os.close();
+                    try {
+                        InputStream is = exchange.getRequestBody();
+                        String nuevoContacto = new String(is.readAllBytes()).trim();
+                        boolean agregado = agregarContactoDB(nuevoContacto);
+                        String response = agregado ? "Contacto agregado" : "Error al agregar";
+                        sendResponse(exchange, agregado ? 200 : 500, response);
+                    } catch (SQLException e) {
+                        sendResponse(exchange, 500, "Error de base de datos");
+                    }
                 } else {
-                    exchange.sendResponseHeaders(405, -1);
+                    sendResponse(exchange, 405, "Método no permitido");
                 }
             }
         });
 
-        // Iniciar servidor
         server.start();
-        System.out.println("Servidor corriendo en http://localhost:8080");
+        System.out.println("Servidor iniciado en puerto: " + serverPort);
     }
 
-    // Obtener contactos desde la base de datos
-    private static List<String> getContactosDesdeDB() {
+    // ------ Métodos auxiliares ------
+    private static void handleCorsPreflight(HttpExchange exchange) throws IOException {
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            setCorsHeaders(exchange);
+            exchange.sendResponseHeaders(204, -1);
+        }
+    }
+
+    private static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        setCorsHeaders(exchange);
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response.getBytes());
+        }
+    }
+
+    private static void setCorsHeaders(HttpExchange exchange) {
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", FRONTEND_URL != null ? FRONTEND_URL : "*");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().add("Access-Control-Max-Age", "3600");
+    }
+
+    // ------ Operaciones con DB ------
+    private static List<String> getContactosDesdeDB() throws SQLException {
         List<String> contactos = new ArrayList<>();
         String query = "SELECT nombre FROM contactos";
+        
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
-
+            
             while (rs.next()) {
                 contactos.add(rs.getString("nombre"));
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
         return contactos;
     }
 
-    // Agregar contacto a la base de datos
-    private static boolean agregarContactoDB(String nombre) {
+    private static boolean agregarContactoDB(String nombre) throws SQLException {
         String query = "INSERT INTO contactos (nombre) VALUES (?)";
+        
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(query)) {
-
+            
             stmt.setString(1, nombre);
             return stmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
         }
     }
 }
