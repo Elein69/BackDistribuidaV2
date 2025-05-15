@@ -13,22 +13,20 @@
             background-color: #f4f4f9;
             color: #333;
         }
-
         header {
             background-color: #4CAF50;
             color: white;
             padding: 10px;
             text-align: center;
         }
-
         h1 {
             margin: 0;
         }
-
         .container {
             padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
         }
-
         .button {
             background-color: #4CAF50;
             color: white;
@@ -38,12 +36,11 @@
             font-size: 16px;
             text-decoration: none;
             border-radius: 5px;
+            margin-top: 10px;
         }
-
         .button:hover {
             background-color: #45a049;
         }
-
         footer {
             background-color: #333;
             color: white;
@@ -53,25 +50,36 @@
             width: 100%;
             bottom: 0;
         }
-
         #contactos-lista {
             margin-top: 20px;
+            list-style-type: none;
+            padding: 0;
         }
-
         .contacto-item {
             margin: 5px 0;
-            padding: 5px;
-            background-color: #e0e0e0;
-            border-radius: 3px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
         #agregar-contacto {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        #nuevoContacto {
+            padding: 10px;
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .error {
+            color: #d32f2f;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-
     <header>
         <h1>Agenda</h1>
         <p>Administra tus contactos</p>
@@ -80,14 +88,14 @@
     <div class="container">
         <h2>Lista de Contactos</h2>
         <ul id="contactos-lista">
-            <!-- Aquí se mostrarán los contactos desde la base de datos -->
+            <!-- Contactos se cargarán aquí -->
         </ul>
 
         <div id="agregar-contacto">
-            <h3>Agregar Nuevo Contacto</h3>
             <input type="text" id="nuevoContacto" placeholder="Nombre del contacto" />
             <button class="button" onclick="agregarContacto()">Agregar Contacto</button>
         </div>
+        <div id="mensaje-error" class="error"></div>
     </div>
 
     <footer>
@@ -95,52 +103,76 @@
     </footer>
 
     <script>
-        const API_URL = 'https://agendasimplebackend-production.up.railway.app';
+        const API_URL = 'https://backdistribuida-production.up.railway.app';
+        const mensajeError = document.getElementById('mensaje-error');
 
-        // Función para cargar los contactos desde la API
-        function cargarContactos() {
-            fetch(`${API_URL}/contactos`, { method: 'GET' })
-                .then(response => response.text())
-                .then(data => {
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            mensajeError.textContent = mensaje;
+            setTimeout(() => mensajeError.textContent = '', 3000);
+        }
+
+        // Cargar contactos al iniciar
+        async function cargarContactos() {
+            try {
+                const response = await fetch(`${API_URL}/contactos`);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                const data = await response.text();
+                const lista = document.getElementById('contactos-lista');
+                lista.innerHTML = '';
+                
+                if (data) {
                     const contactos = data.split(',');
-                    const lista = document.getElementById('contactos-lista');
-                    lista.innerHTML = ''; // Limpiar lista antes de agregar
                     contactos.forEach(contacto => {
                         const li = document.createElement('li');
                         li.className = 'contacto-item';
-                        li.textContent = contacto;
+                        li.textContent = contacto.trim();
                         lista.appendChild(li);
                     });
-                })
-                .catch(error => console.error('Error al cargar los contactos:', error));
-        }
-
-        // Función para agregar un contacto
-        function agregarContacto() {
-            const nombre = document.getElementById('nuevoContacto').value.trim();
-            if (nombre) {
-                fetch(`${API_URL}/addContacto`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain'
-                    },
-                    body: nombre
-                })
-                .then(response => response.text())
-                .then(data => {
-                    alert(data);
-                    cargarContactos(); // Recargar lista de contactos
-                    document.getElementById('nuevoContacto').value = ''; // Limpiar campo
-                })
-                .catch(error => console.error('Error al agregar el contacto:', error));
-            } else {
-                alert('Por favor ingresa un nombre de contacto.');
+                }
+            } catch (error) {
+                mostrarError('Error al cargar contactos: ' + error.message);
+                console.error('Error:', error);
             }
         }
 
-        // Cargar la lista de contactos al cargar la página
-        window.onload = cargarContactos;
-    </script>
+        // Agregar nuevo contacto
+        async function agregarContacto() {
+            const nombre = document.getElementById('nuevoContacto').value.trim();
+            if (!nombre) {
+                mostrarError('Por favor ingresa un nombre.');
+                return;
+            }
 
+            try {
+                const response = await fetch(`${API_URL}/addContacto`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Accept': 'text/plain'
+                    },
+                    body: nombre
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Error al agregar');
+                }
+
+                const resultado = await response.text();
+                alert(resultado);
+                document.getElementById('nuevoContacto').value = '';
+                cargarContactos();
+            } catch (error) {
+                mostrarError('Error: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        // Iniciar
+        document.addEventListener('DOMContentLoaded', cargarContactos);
+    </script>
 </body>
 </html>
