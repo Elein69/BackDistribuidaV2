@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Agenda</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+        #contactos-lista {
+            margin-top: 20px;
+        }
+
+        .contacto-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        #agregar-contacto {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Agenda</h1>
+        <p>Administra tus contactos</p>
+    </header>
+
+    <div class="container">
+        <h2>Lista de Contactos</h2>
+        <ul id="contactos-lista">
+            <!-- Aquí se mostrarán los contactos desde la base de datos -->
+        </ul>
+
+        <div id="agregar-contacto">
+            <h3>Agregar Nuevo Contacto</h3>
+            <input type="text" id="nuevoContacto" placeholder="Nombre del contacto" />
+            <button class="button" onclick="agregarContacto()">Agregar Contacto</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Agenda Simple</p>
+    </footer>
+
+    <script>
+        const API_URL = 'https://agendasimplebackend-production.up.railway.app';
+
+        // Función para cargar los contactos desde la API
+        function cargarContactos() {
+            fetch(`${API_URL}/contactos`, { method: 'GET' })
+                .then(response => response.text())
+                .then(data => {
+                    const contactos = data.split(',');
+                    const lista = document.getElementById('contactos-lista');
+                    lista.innerHTML = ''; // Limpiar lista antes de agregar
+                    contactos.forEach(contacto => {
+                        const li = document.createElement('li');
+                        li.className = 'contacto-item';
+                        li.textContent = contacto;
+                        lista.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Error al cargar los contactos:', error));
+        }
+
+        // Función para agregar un contacto
+        function agregarContacto() {
+            const nombre = document.getElementById('nuevoContacto').value.trim();
+            if (nombre) {
+                fetch(`${API_URL}/addContacto`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: nombre
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    cargarContactos(); // Recargar lista de contactos
+                    document.getElementById('nuevoContacto').value = ''; // Limpiar campo
+                })
+                .catch(error => console.error('Error al agregar el contacto:', error));
+            } else {
+                alert('Por favor ingresa un nombre de contacto.');
+            }
+        }
+
+        // Cargar la lista de contactos al cargar la página
+        window.onload = cargarContactos;
+    </script>
+
+</body>
+</html>
