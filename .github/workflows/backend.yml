@@ -32,3 +32,4 @@ jobs:
           -d "{\"branch\": \"main\"}" \
           -H "Authorization: Bearer $RAILWAY_API_KEY" \
           ${{ secrets.PROJECT_URL }}
+
