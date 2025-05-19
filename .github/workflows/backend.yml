@@ -21,7 +21,6 @@ jobs:
 
       - name: Build Backend
         run: |
-          cd backend
           mvn clean install
 
       - name: Deploy to Railway
