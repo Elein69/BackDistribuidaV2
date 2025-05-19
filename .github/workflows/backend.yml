@@ -1,0 +1,36 @@
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Backend
+        run: |
+          cd backend
+          mvn clean install
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_API_KEY: ${{ 0e5fca2d-57dd-44b4-80f5-4f5acbd90df6 }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{\"branch\": \"main\"}" \
+          -H "Authorization: Bearer $RAILWAY_API_KEY" \
+          https://backdistribuida-production.up.railway.app/
+          
+
