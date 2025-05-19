@@ -27,9 +27,8 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-          PROJECT_URL: "https://backdistribuida-production.up.railway.app/"
         run: |
           curl -X POST -H "Content-Type: application/json" \
           -d "{\"branch\": \"main\"}" \
           -H "Authorization: Bearer $RAILWAY_API_KEY" \
-          $PROJECT_URL
+          ${{ secrets.PROJECT_URL }}
