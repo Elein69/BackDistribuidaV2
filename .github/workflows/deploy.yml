@@ -3,21 +3,22 @@ name: Deploy to Railway
 on:
   push:
     branches:
-      - main  # O la rama que uses para producción
+      - main # Cambia si tu rama principal es diferente
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Railway CLI
-        run: npm install -g railway
+      - name: Set up Railway CLI
+        uses: railwayapp/cli-action@v1
 
       - name: Deploy to Railway
-        run: railway up --no-interactive --service $(railway status | grep Service | awk '{print $2}')
+        run: railway up --service BackDistribuidaV2
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
 

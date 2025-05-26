@@ -1,26 +1,23 @@
-# Etapa de compilación
+# Usa una imagen base con Java y Maven
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 
+# Crea y entra al directorio del proyecto
 WORKDIR /app
 
-# Copia todos los archivos del proyecto
+# Copia el pom y descarga dependencias primero (caching)
 COPY pom.xml .
-COPY src ./src
+RUN mvn dependency:go-offline
 
-# Compila el JAR ejecutable con dependencias
-RUN mvn clean package -DskipTests
+# Copia el resto del proyecto y construye el JAR con dependencias (shade plugin)
+COPY . .
+RUN mvn package -DskipTests
 
-# Etapa de ejecución
-FROM eclipse-temurin:17-jdk-jammy
+# Fase final: usar una imagen base liviana con solo Java para ejecutar
+FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Copia el JAR desde la etapa de compilación
-COPY --from=build /app/target/AgendaSimpleBackend-1.0.jar app.jar
-
-# Expone el puerto si es necesario (ajusta si tu servidor usa otro)
-EXPOSE 8080
-
-# Comando para ejecutar la app
-CMD ["java", "-jar", "app.jar"]
+# Cambia esto según tu clase principal
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
