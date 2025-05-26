@@ -3,7 +3,7 @@ name: Deploy to Railway
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   deploy:
@@ -16,9 +16,10 @@ jobs:
       - name: Set up Railway CLI
         uses: railwayapp/cli-action@v1
 
-- name: Deploy to Railway
-  run: railway up --service BackDistribuidaV2
-  env:
-    RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Deploy to Railway
+        run: railway up --service BackDistribuidaV2
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
 
 
