@@ -1,4 +1,4 @@
-name: Deploy Backend to Railway
+name: Deploy Frontend to Vercel
 
 on:
   push:
@@ -10,25 +10,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Build Backend
-        run: |
-          mvn clean install
-
-      - name: Deploy to Railway
-        env:
-          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" \
-          -d "{\"branch\": \"main\"}" \
-          -H "Authorization: Bearer $RAILWAY_API_KEY" \
-          ${{ secrets.PROJECT_URL }}
-
+      - name: Trigger Vercel Deploy Hook
+        run: curl -X POST ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
